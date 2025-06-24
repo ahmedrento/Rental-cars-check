@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-key="pageTitle">خدمة السيارة البديلة للوكالات</title>
+    
+    <!-- Chosen Palette: Rentou Identity Colors (Dark Purple: #80276C, Medium Purple: #A51890, Lighter Purple: #BB16A3, Orange-Red: #FA4616, Orange: #FFA300) -->
+    <!-- Application Structure Plan: A single-page, vertical-scrolling narrative application designed for operations managers. The structure flows from identifying the problem (regulatory challenges) to presenting our service as the comprehensive solution. Key sections include: a hero section with a clear value proposition and interactive benefit points, an interactive breakdown of the regulatory challenges, a tabbed view of the core benefits (financial, operational, compliance), an interactive price explorer with a dynamic bar chart, a dedicated company profile section, and a credibility section with market examples, culminating in a clear call to action. This structure is chosen to guide the user through a persuasive journey, starting with their pain points and logically leading to our solution, making the business case clear and compelling, while also providing a comprehensive overview of the company and its widespread presence. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Ministry of Commerce Regulations -> Goal: Highlight Risk -> Viz/Method: Impactful stat cards and a simple HTML/CSS flow diagram -> Interaction: On-scroll reveal animations -> Justification: Makes complex rules digestible and emphasizes financial risk.
+        - Report Info: In-house vs. Outsourcing Comparison -> Goal: Compare -> Viz/Method: Interactive HTML table with a toggle switch -> Interaction: User clicks to toggle between the two columns, with a smooth visual transition -> Justification: Actively engages the user in comparing the options, making the advantages of outsourcing more memorable.
+        - Report Info: Pricing Tiers -> Goal: Inform & Explore -> Viz/Method: A set of filter buttons for car categories feeding a dynamic Chart.js bar chart -> Interaction: User clicks a category, and the chart instantly updates to show corresponding price ranges -> Justification: Transforms a static table into an interactive cost-exploration tool, providing immediate visual feedback.
+        - Report Info: Company Profile (About Us, Goals, Vision, Mission, Ethics, Services) -> Goal: Build Credibility & Inform -> Viz/Method: Dedicated section with distinct sub-sections, using headings and paragraphs for text, and simple list formatting for services. -> Interaction: Standard scrolling; content is static but organized for readability. -> Justification: Provides essential background and builds trust by detailing the company's foundation, values, and comprehensive service offerings.
+        - Report Info: Hero Section Value Proposition -> Goal: Simplify & Engage -> Viz/Method: Main title, brief intro, and an interactive list of key benefits with emojis and hover effects -> Interaction: Subtle scale-up on hover for benefit points. -> Justification: Breaks down the core message into easily digestible and visually appealing interactive elements, enhancing immediate understanding and engagement.
+        - Report Info: Branch Distribution -> Goal: No longer included.
+        - Library/Method: Vanilla JavaScript for all interactions, Chart.js for data visualization (Canvas), Tailwind CSS for styling. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Almarai', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .tajawal-bold {
+            font-weight: 700;
+        }
+        .tajawal-extrabold {
+            font-weight: 800;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .section-fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .section-fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .tab-active {
+            background-color: #80276C; /* Dark Purple */
+            color: white;
+            border-color: #80276C; /* Dark Purple */
+        }
+        .filter-btn-active {
+            background-color: #80276C; /* Dark Purple */
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        .benefit-item {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle initial shadow */
+        }
+        .benefit-item:hover {
+            transform: translateY(-5px); /* Lift effect */
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2); /* Stronger shadow on hover */
+        }
+        .card-modern {
+            background-color: #ffffff;
+            border-radius: 1rem; /* More rounded */
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1); /* Modern shadow */
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .card-modern:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background-color: white !important;
+                color: black !important;
+            }
+            header, .language-toggle-container, .request-quote-btn-container, .filter-btn, .tab-btn, .section-fade-in, .hero-benefits-wrapper {
+                display: none !important; /* Hide navigation, language toggle, and all buttons, and hero benefits for print */
+            }
+            /* Ensure sections start on new page for better readability in print */
+            #company-profile, #challenge, #solution, #pricing, #contact {
+                page-break-before: always;
+            }
+            /* Make sure charts are fully visible and readable */
+            .chart-container {
+                height: auto !important;
+                max-width: 100% !important;
+                margin: 20px auto !important;
+            }
+            canvas {
+                width: 100% !important;
+                height: auto !important;
+                display: block !important; /* Ensure Plotly renders as a block for print */
+                box-shadow: none !important; /* Remove any shadows in print */
+            }
+            /* Ensure text is black on white for print */
+            p, h1, h2, h3, h4, h5, a {
+                color: black !important;
+            }
+            .bg-gray-50, .bg-white {
+                background-color: white !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .text-gray-600, .text-gray-700, .text-gray-800 {
+                color: black !important;
+            }
+            .tajawal-bold, .tajawal-extrabold {
+                font-weight: 700 !important;
+            }
+            .shadow-lg, .shadow-md, .shadow-xl, .shadow-inner {
+                box-shadow: none !important;
+            }
+            .border-t-4, .border-r-4 {
+                border-width: 0 !important; /* Remove colored borders in print */
+            }
+            /* Show hero description for print */
+            .hero-description-for-print {
+                display: block !important;
+                margin-top: 20px !important;
+                font-size: 16px !important;
+                color: black !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[#F8F5F2] text-[#333333] leading-relaxed">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-md">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl tajawal-bold text-[#80276C]" data-key="headerTitle">حلول السيارة البديلة - Rento لتأجير السيارات</h1>
+            <div class="hidden md:flex space-x-8 space-x-reverse">
+                <a href="#company-profile" class="text-gray-600 hover:text-[#80276C] transition" data-key="navProfile">تعريف بالشركة</a>
+                <a href="#challenge" class="text-gray-600 hover:text-[#80276C] transition" data-key="navChallenge">التحدي</a>
+                <a href="#solution" class="text-gray-600 hover:text-[#80276C] transition" data-key="navSolution">حلولنا</a>
+                <a href="#pricing" class="text-gray-600 hover:text-[#80276C] transition" data-key="navPricing">الأسعار</a>
+                <a href="#contact" class="text-gray-600 hover:text-[#80276C] transition" data-key="navContact">تواصل معنا</a>
+            </div>
+            <div class="flex items-center space-x-4 space-x-reverse">
+                <button id="language-toggle" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg shadow-md hover:bg-gray-300 transition transform hover:-translate-y-0.5 language-toggle-container">
+                    🌐 <span id="current-language">EN</span>
+                </button>
+                <a href="#contact" class="bg-[#80276C] text-white px-5 py-2 rounded-lg shadow-md hover:bg-[#6a205a] transition transform hover:-translate-y-0.5 request-quote-btn-container" data-key="requestQuoteBtn">اطلب عرض سعر</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="min-h-[70vh] flex items-center bg-gradient-to-br from-white to-[#F8F5F2] py-12">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-3xl md:text-5xl lg:text-6xl tajawal-extrabold text-[#80276C] mb-6 drop-shadow-md" data-key="heroTitle">حوّل الالتزام إلى فرصة</h2>
+                <p class="text-lg md:text-xl max-w-3xl mx-auto text-gray-700 mb-10 hero-intro" data-key="heroIntro">نقدم لوكالتكم حلاً استراتيجياً وشاملاً لخدمة السيارة البديلة من شركة موكن المحدودة (Rento لتأجير السيارات).</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12 hero-benefits-wrapper">
+                    <div class="flex flex-col items-center justify-center p-5 bg-white rounded-2xl border border-gray-100 benefit-item">
+                        <span class="text-4xl mb-3">✔️</span>
+                        <p class="text-lg tajawal-bold text-gray-800" data-key="benefit1">امتثال للوائح وزارة التجارة</p>
+                    </div>
+                    <div class="flex flex-col items-center justify-center p-5 bg-white rounded-2xl border border-gray-100 benefit-item">
+                        <span class="text-4xl mb-3">📉</span>
+                        <p class="text-lg tajawal-bold text-gray-800" data-key="benefit2">تخفيض التكاليف التشغيلية</p>
+                    </div>
+                    <div class="flex flex-col items-center justify-center p-5 bg-white rounded-2xl border border-gray-100 benefit-item">
+                        <span class="text-4xl mb-3">😊</span>
+                        <p class="text-lg tajawal-bold text-gray-800" data-key="benefit3">تعزيز رضا العملاء وولائهم</p>
+                    </div>
+                </div>
+
+                <a href="#challenge" class="bg-[#FA4616] text-white px-10 py-4 rounded-xl tajawal-bold text-lg shadow-lg hover:bg-[#d63d12] transition transform hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#FA4616] focus:ring-opacity-75" data-key="discoverHowBtn">اكتشف كيف</a>
+                
+                <!-- Hidden element for print version of hero description -->
+                <p class="hidden hero-description-for-print" data-key="heroDescriptionPrint">نقدم لوكالتكم حلاً استراتيجياً وشاملاً لخدمة السيارة البديلة من شركة موكن المحدودة (Rento لتأجير السيارات). امتثل للوائح وزارة التجارة، خفّض التكاليف، وعزز رضا عملائك وولائهم بكل سهولة وثقة.</p>
+            </div>
+        </section>
+
+        <!-- Company Profile Section -->
+        <section id="company-profile" class="py-16 lg:py-24 bg-gray-50 section-fade-in">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h3 class="text-3xl md:text-4xl tajawal-bold text-[#80276C] mb-3" data-key="profileSectionTitle">Rento لتأجير السيارات: الأفضل والأحدث</h3>
+                    <p class="max-w-3xl mx-auto text-gray-600" data-key="profileSectionDescription">تعريف شامل بمسيرتنا نحو التميز والتحديث المستمر في قطاع تأجير السيارات.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-12 text-gray-700">
+                    <div class="card-modern p-8">
+                        <h4 class="text-2xl tajawal-bold text-[#A51890] mb-3" data-key="aboutUsTitle">من نحن؟</h4>
+                        <p class="mb-4" data-key="aboutUsDesc">رينتو لتأجير السيارات (علامة تجارية مسجلة لشركة موكن المحدودة) تأسست في عام ٢٠١٥م. وعلى الرغم من الفترة الزمنية القصيرة، فقد نجحت الشركة في بناء سمعة متميزة بوأتها مكانة فريدة في مجال تأجير السيارات.</p>
+                    </div>
+                    <div class="card-modern p-8">
+                        <h4 class="text-2xl tajawal-bold text-[#A51890] mb-3" data-key="ourGoalsTitle">أهدافنا</h4>
+                        <p class="mb-4" data-key="ourGoalsDesc">الربح هو هدف معلن لشركات تأجير السيارات ولكننا في رينتو نؤمن بأن تقديم أفضل مستوى من الخدمات لعملائنا الذين هم شركاؤنا في النجاح هو المكسب الحقيقي لنا والربح المادي يأتي لاحقاً. لذا حرصت الشركة وقبل أن تبدأ أعمالها، على دراسة احتياجات العملاء مع التركيز على أن يكون الكادر العامل بالشركة كادراً مهنياً متخصصاً ومدرباً لتقديم أفضل الخدمات، كما أن الشركة هيأت مرافقها وأسطولها لتتناسب مع احتياجات العملاء بمختلف فئاتهم.</p>
+                    </div>
+                    <div class="card-modern p-8">
+                        <h4 class="text-2xl tajawal-bold text-[#A51890] mb-3" data-key="ourVisionTitle">رؤيتنا</h4>
+                        <p class="mb-4" data-key="ourVisionDesc">أن نكون علامة تجارية متميزة تبدأ من داخل المملكة وتنتشر إلى خارجها كاستثمار وطني يعكس تطور المملكة في ريادة الأعمال داخل المملكة وخارجها وهذا يبدأ بكم كشركاء للنجاح، حيث أننا بكم نبدأ وبرأيكم وتواصلكم نعمل ونطور لنكون الأفضل.</p>
+                    </div>
+                    <div class="card-modern p-8">
+                        <h4 class="text-2xl tajawal-bold text-[#A51890] mb-3" data-key="ourMissionTitle">رسالتنا</h4>
+                        <p class="mb-4" data-key="ourMissionDesc">هي أن تصل بخدماتنا إلى القمة وأن نستحق أن نكون مصدر فخر لوطننا في الداخل والخارج وذلك بالتزامنا الدائم نحو مساهمينا وعملائنا والعاملين بالشركة. والحفاظ على هذه المبادئ وهذا من خلال تقديم الخدمات المتميزة وتعزيز ثقافة العمل الجماعي والتي نبنيها معاً للوصول إلى ما يتجاوز توقعات وطموحات عملائنا.</p>
+                    </div>
+                    <div class="card-modern p-8 md:col-span-2">
+                        <h4 class="text-2xl tajawal-bold text-[#A51890] mb-3" data-key="ourEthicsTitle">قيمنا</h4>
+                        <p class="mb-4" data-key="ourEthicsDesc">الاحترافية في العمل، والجودة في الخدمات، والمصداقية في التعامل.</p>
+                    </div>
+                </div>
+
+                <div class="mt-12">
+                    <h4 class="text-2xl tajawal-bold text-[#A51890] mb-6 text-center" data-key="ourServicesTitle">خدماتنا الرئيسية</h4>
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="card-modern p-6 border-r-4 border-[#BB16A3]">
+                            <h5 class="tajawal-bold text-xl text-[#80276C] mb-2" data-key="service1Title">توصيل واستلام السيارة</h5>
+                            <p class="text-gray-600" data-key="service1Desc">خدمة "تصلنا أو نصلك" لتسليم واستلام السيارة في مقر العمل أو المنزل.</p>
+                        </div>
+                        <div class="card-modern p-6 border-r-4 border-[#BB16A3]">
+                            <h5 class="tajawal-bold text-xl text-[#80276C] mb-2" data-key="service2Title">فريق صيانة متنقل</h5>
+                            <p class="text-gray-600" data-key="service2Desc">لخدمتكم في موقعكم، مما يضمن استمرارية أعمالكم.</p>
+                        </div>
+                        <div class="card-modern p-6 border-r-4 border-[#BB16A3]">
+                            <h5 class="tajawal-bold text-xl text-[#80276C] mb-2" data-key="service3Title">أسعار خاصة للأفراد</h5>
+                            <p class="text-gray-600" data-key="service3Desc">إيجار شهري بأسعار خاصة للأفراد.</p>
+                        </div>
+                        <div class="card-modern p-6 border-r-4 border-[#BB16A3]">
+                            <h5 class="tajawal-bold text-xl text-[#80276C] mb-2" data-key="service4Title">سيارات بسائقين</h5>
+                            <p class="text-gray-600" data-key="service4Desc">توفير سيارات مع سائقين وفقاً لطلب العميل.</p>
+                        </div>
+                        <div class="card-modern p-6 border-r-4 border-[#BB16A3]">
+                            <h5 class="tajawal-bold text-xl text-[#80276C] mb-2" data-key="service5Title">برنامج عضوية رينتو</h5>
+                            <p class="text-gray-600" data-key="service5Desc">يقدم للأعضاء خصومات عالية وترقيات ومزايا أخرى.</p>
+                        </div>
+                        <div class="card-modern p-6 border-r-4 border-[#BB16A3]">
+                            <h5 class="tajawal-bold text-xl text-[#80276C] mb-2" data-key="service6Title">خدمات للشركات والفنادق</h5>
+                            <p class="text-gray-600" data-key="service6Desc">توفير سيارات للخدمات السياحية، المناسبات، الوفود الرسمية، وعقود تأجير سنوية.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Challenge Section -->
+        <section id="challenge" class="py-16 lg:py-24 bg-white section-fade-in">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h3 class="text-3xl md:text-4xl tajawal-bold text-[#80276C] mb-3" data-key="challengeSectionTitle">التحدي: تعقيدات الامتثال ومخاطره</h3>
+                    <p class="max-w-3xl mx-auto text-gray-600" data-key="challengeSectionDescription">تواجه وكالات السيارات ضغوطاً تنظيمية وتشغيلية لتوفير سيارة بديلة، مما يترتب عليه تكاليف ومخاطر كبيرة.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Card 1: The Rule -->
+                    <div class="card-modern p-6 border-t-4 border-[#FA4616]">
+                        <span class="text-4xl">📜</span>
+                        <h4 class="text-xl tajawal-bold text-[#80276C] my-3" data-key="card1Title">شروط إلزامية</h4>
+                        <p class="text-gray-600" data-key="card1Description">تلزم وزارة التجارة بتوفير سيارة بديلة من **نفس الفئة** في حالات الخلل المصنعي أو تأخر توفير قطع الغيار لأكثر من 14 يوماً.</p>
+                    </div>
+                    <!-- Card 2: Financial Risk -->
+                    <div class="card-modern p-6 border-t-4 border-[#A51890]">
+                        <span class="text-4xl">💰</span>
+                        <h4 class="text-xl tajawal-bold text-[#80276C] my-3" data-key="card2Title">خسائر مالية مباشرة</h4>
+                        <p class="text-gray-600" data-key="card2Description">في حال عدم التوفير، يُدفع تعويض يومي للعميل يُحسب كالتالي: <br><span class="font-mono text-sm">(سعر السيارة ÷ 400)</span>، بالإضافة إلى غرامات تصل إلى <span class="tajawal-bold">50,000 ريال</span>.</p>
+                    </div>
+                    <!-- Card 3: Operational Burden -->
+                    <div class="card-modern p-6 border-t-4 border-[#BB16A3]">
+                         <span class="text-4xl">⚙️</span>
+                        <h4 class="text-xl tajawal-bold text-[#80276C] my-3" data-key="card3Title">عبء تشغيلي هائل</h4>
+                        <p class="text-gray-600" data-key="card3Description">شراء وإدارة أسطول سيارات بديلة متنوع يتطلب استثماراً رأسمالياً ضخماً وجهداً إدارياً يشتت التركيز عن أعمالكم الأساسية.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Solution Section -->
+        <section id="solution" class="py-16 lg:py-24 bg-gray-50 section-fade-in">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h3 class="text-3xl md:text-4xl tajawal-bold text-[#80276C] mb-3" data-key="solutionSectionTitle">الحل: شريكك الاستراتيجي للتميز التشغيلي</h3>
+                    <p class="max-w-3xl mx-auto text-gray-600" data-key="solutionSectionDescription">نقدم خدمة متكاملة تحول هذا التحدي إلى ميزة تنافسية، عبر أربع ركائز أساسية.</p>
+                </div>
+
+                <!-- Tabs -->
+                <div id="tabs-container" class="max-w-4xl mx-auto card-modern p-4">
+                    <div class="flex justify-center border-b border-gray-200 mb-8 flex-wrap">
+                        <button class="tab-btn tab-active flex-1 md:flex-none text-center px-6 py-3 tajawal-bold text-lg border-b-2" data-tab="tab1" data-key="tab1Btn">📈 الكفاءة المالية</button>
+                        <button class="tab-btn flex-1 md:flex-none text-center px-6 py-3 tajawal-bold text-lg border-b-2" data-tab="tab2" data-key="tab2Btn">🛡️ امتثال مضمون</button>
+                        <button class="tab-btn flex-1 md:flex-none text-center px-6 py-3 tajawal-bold text-lg border-b-2" data-tab="tab3" data-key="tab3Btn">🚀 مرونة تشغيلية</button>
+                        <button class="tab-btn flex-1 md:flex-none text-center px-6 py-3 tajawal-bold text-lg border-b-2" data-tab="tab4" data-key="tab4Btn">😊 رضا العملاء</button>
+                    </div>
+                    <div id="tabs-content">
+                        <!-- Tab Content 1 -->
+                        <div id="tab1" class="tab-content p-4">
+                            <h4 class="text-2xl tajawal-bold text-[#80276C] mb-4" data-key="tab1ContentTitle">تحويل التكاليف وتحسين الربحية</h4>
+                            <p class="text-gray-700" data-key="tab1ContentDesc">تخلص من النفقات الرأسمالية الضخمة لشراء أسطول سيارات، واستبدلها بنفقات تشغيلية شهرية ثابتة وقابلة للتنبؤ. شركة موكن المحدودة (Rento لتأجير السيارات) تتكفل بكل شيء: الصيانة، التأمين، الترخيص، والاستهلاك. هذا يحرر مواردكم المالية للتركيز على النمو والتوسع.</p>
+                        </div>
+                        <!-- Tab Content 2 -->
+                        <div id="tab2" class="tab-content hidden p-4">
+                            <h4 class="text-2xl tajawal-bold text-[#80276C] mb-4" data-key="tab2ContentTitle">تجنب الغرامات وراحة البال</h4>
+                            <p class="text-gray-700" data-key="tab2ContentDesc">فريق Rento لتأجير السيارات يضمن تطبيق جميع لوائح وزارة التجارة بدقة. نوفر السيارة البديلة المناسبة في الوقت المناسب، مما يحمي وكالتكم من الغرامات المالية والشكاوى القانونية، ويعزز سمعتكم ككيان مسؤول وملتزم.</p>
+                        </div>
+                        <!-- Tab Content 3 -->
+                        <div id="tab3" class="tab-content hidden p-4">
+                            <h4 class="text-2xl tajawal-bold text-[#80276C] mb-4" data-key="tab3ContentTitle">أسطول متنوع تحت طلبكم</h4>
+                             <p class="text-gray-700" data-key="tab3ContentDesc">استفد من أسطول Rento لتأجير السيارات الضخم الذي يغطي جميع فئات السيارات (اقتصادية، سيدان، دفع رباعي، فاخرة). لا حاجة للقلق بشأن توفر فئة معينة. مع شبكتنا اللوجستية، نضمن تسليم واستلام السيارة بسرعة وكفاءة في أي مكان.</p>
+                        </div>
+                        <!-- Tab Content 4 -->
+                        <div id="tab4" class="tab-content hidden p-4">
+                             <h4 class="text-2xl tajawal-bold text-[#80276C] mb-4" data-key="tab4ContentTitle">تحويل تجربة سلبية إلى إيجابية</h4>
+                             <p class="text-gray-700" data-key="tab4ContentDesc">عندما يتعطل العميل، فإن توفير سيارة بديلة عالية الجودة بشكل فوري يحول إزعاجه إلى تقدير لخدمتكم الممتازة. هذه اللحظة الحاسمة تبني ولاءً طويل الأمد وتجعل من عملائكم سفراء لعلامتكم التجارية.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing" class="py-16 lg:py-24 bg-white section-fade-in">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h3 class="text-3xl md:text-4xl tajawal-bold text-[#80276C] mb-3" data-key="pricingSectionTitle">أسعار تنافسية ونماذج مرنة</h3>
+                    <p class="max-w-3xl mx-auto text-gray-600" data-key="pricingSectionDescription">اختر فئة السيارة لتستكشف هياكل التسعير التقديرية لدينا. <span class="tajawal-bold text-[#FA4616]" data-key="pricingDisclaimer">يرجى ملاحظة أن هذا نموذج تسعير افتراضي، ويتم تحديد التسعير النهائي بناءً على سعر السيارات الفعلي وحسب موديل السنة.</span> نقدم حلولاً مصممة خصيصاً لتناسب احتياجات وميزانية وكالتكم.</p>
+                </div>
+                
+                <!-- Filter Buttons -->
+                <div id="car-category-filters" class="flex justify-center items-center flex-wrap gap-3 mb-8">
+                    <button class="filter-btn px-5 py-2 rounded-full text-gray-700 bg-white shadow-md transition duration-300 ease-in-out hover:bg-gray-100" data-category="all" data-key="filterAll">كل الفئات</button>
+                    <button class="filter-btn px-5 py-2 rounded-full text-gray-700 bg-white shadow-md transition duration-300 ease-in-out hover:bg-gray-100" data-category="اقتصادية" data-key="filterEconomic">اقتصادية</button>
+                    <button class="filter-btn px-5 py-2 rounded-full text-gray-700 bg-white shadow-md transition duration-300 ease-in-out hover:bg-gray-100" data-category="متوسطة" data-key="filterMedium">متوسطة</button>
+                    <button class="filter-btn px-5 py-2 rounded-full text-gray-700 bg-white shadow-md transition duration-300 ease-in-out hover:bg-gray-100" data-category="دفع رباعي" data-key="filterSUV">دفع رباعي</button>
+                    <button class="filter-btn px-5 py-2 rounded-full text-gray-700 bg-white shadow-md transition duration-300 ease-in-out hover:bg-gray-100" data-category="فاخرة" data-key="filterLuxury">فاخرة</button>
+                </div>
+
+                <!-- Chart -->
+                <div class="card-modern p-4 sm:p-8">
+                    <div class="chart-container">
+                        <canvas id="pricingChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+        
+        <!-- Contact Section -->
+        <section id="contact" class="py-16 lg:py-24 bg-gray-50 section-fade-in">
+            <div class="container mx-auto px-6">
+                 <div class="max-w-3xl mx-auto text-center">
+                    <h3 class="text-3xl md:text-4xl tajawal-bold text-[#80276C] mb-4" data-key="contactSectionTitle">هل أنتم مستعدون للارتقاء بخدماتكم؟</h3>
+                    <p class="text-gray-700 text-lg mb-8" data-key="contactSectionDescription">دعنا نناقش كيف يمكننا تصميم حل مخصص لوكالتكم. تواصل معنا اليوم للحصول على عرض سعر تفصيلي واستشارة مجانية.</p>
+                    <div class="bg-white p-8 rounded-xl shadow-inner card-modern">
+                        <p class="text-xl text-gray-800 mb-2" data-key="contactSalesTeam">تواصل مع فريق المبيعات المختص في Rento لتأجير السيارات:</p>
+                        <p class="text-2xl tajawal-bold text-[#80276C] tracking-wider mb-4" data-key="contactInfo">
+                            <a href="tel:+966500038360" class="block text-[#80276C] hover:underline">جوال: 00966500038360</a>
+                            <a href="tel:920019993" class="block text-[#80276C] hover:underline">الرقم الموحد: 920019993</a>
+                            <a href="mailto:a.rabia@rentocars.com" class="block text-[#80276C] hover:underline">البريد الإلكتروني: a.rabia@rentocars.com</a>
+                        </p>
+                        <a href="mailto:a.rabia@rentocars.com" class="bg-[#80276C] text-white px-8 py-3 rounded-lg tajawal-bold text-lg shadow-lg hover:bg-[#6a205a] transition transform hover:-translate-y-1 inline-block" data-key="startPartnershipBtn">ابدأ الشراكة الآن</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-[#80276C] text-white py-6">
+        <div class="container mx-auto px-6 text-center">
+            <p data-key="footerCopyright">&copy; 2025 شركة موكن المحدودة (Rento لتأجير السيارات). جميع الحقوق محفوظة.</p>
+            <p class="text-sm text-[#BB16A3]" data-key="footerTagline">حلول استراتيجية لقطاع السيارات</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const translations = {
+                ar: {
+                    pageTitle: 'خدمة السيارة البديلة للوكالات',
+                    headerTitle: 'حلول السيارة البديلة - Rento لتأجير السيارات',
+                    navProfile: 'تعريف بالشركة',
+                    navChallenge: 'التحدي',
+                    navSolution: 'حلولنا',
+                    navPricing: 'الأسعار',
+                    navContact: 'تواصل معنا',
+                    requestQuoteBtn: 'اطلب عرض سعر',
+                    heroTitle: 'حوّل الالتزام إلى فرصة',
+                    heroIntro: 'نقدم لوكالتكم حلاً استراتيجياً وشاملاً لخدمة السيارة البديلة من شركة موكن المحدودة (Rento لتأجير السيارات).',
+                    benefit1: 'امتثال للوائح وزارة التجارة',
+                    benefit2: 'تخفيض التكاليف التشغيلية',
+                    benefit3: 'تعزيز رضا العملاء وولائهم',
+                    heroDescriptionPrint: 'نقدم لوكالتكم حلاً استراتيجياً وشاملاً لخدمة السيارة البديلة من شركة موكن المحدودة (Rento لتأجير السيارات). امتثل للوائح وزارة التجارة، خفّض التكاليف، وعزز رضا عملائك وولائهم بكل سهولة وثقة.',
+                    discoverHowBtn: 'اكتشف كيف',
+                    profileSectionTitle: 'Rento لتأجير السيارات: الأفضل والأحدث',
+                    profileSectionDescription: 'تعريف شامل بمسيرتنا نحو التميز والتحديث المستمر في قطاع تأجير السيارات.',
+                    aboutUsTitle: 'من نحن؟',
+                    aboutUsDesc: 'رينتو لتأجير السيارات (علامة تجارية مسجلة لشركة موكن المحدودة) تأسست في عام ٢٠١٥م. وعلى الرغم من الفترة الزمنية القصيرة، فقد نجحت الشركة في بناء سمعة متميزة بوأتها مكانة فريدة في مجال تأجير السيارات.',
+                    ourGoalsTitle: 'أهدافنا',
+                    ourGoalsDesc: 'الربح هو هدف معلن لشركات تأجير السيارات ولكننا في رينتو نؤمن بأن تقديم أفضل مستوى من الخدمات لعملائنا الذين هم شركاؤنا في النجاح هو المكسب الحقيقي لنا والربح المادي يأتي لاحقاً. لذا حرصت الشركة وقبل أن تبدأ أعمالها، على دراسة احتياجات العملاء مع التركيز على أن يكون الكادر العامل بالشركة كادراً مهنياً متخصصاً ومدرباً لتقديم أفضل الخدمات، كما أن الشركة هيأت مرافقها وأسطولها لتتناسب مع احتياجات العملاء بمختلف فئاتهم.',
+                    ourVisionTitle: 'رؤيتنا',
+                    ourVisionDesc: 'أن نكون علامة تجارية متميزة تبدأ من داخل المملكة وتنتشر إلى خارجها كاستثمار وطني يعكس تطور المملكة في ريادة الأعمال داخل المملكة وخارجها وهذا يبدأ بكم كشركاء للنجاح، حيث أننا بكم نبدأ وبرأيكم وتواصلكم نعمل ونطور لنكون الأفضل.',
+                    ourMissionTitle: 'رسالتنا',
+                    ourMissionDesc: 'هي أن تصل بخدماتنا إلى القمة وأن نستحق أن نكون مصدر فخر لوطننا في الداخل والخارج وذلك بالتزامنا الدائم نحو مساهمينا وعملائنا والعاملين بالشركة. والحفاظ على هذه المبادئ وهذا من خلال تقديم الخدمات المتميزة وتعزيز ثقافة العمل الجماعي والتي نبنيها معاً للوصول إلى ما يتجاوز توقعات وطموحات عملائنا.',
+                    ourEthicsTitle: 'قيمنا',
+                    ourEthicsDesc: 'الاحترافية في العمل، والجودة في الخدمات، والمصداقية في التعامل.',
+                    ourServicesTitle: 'خدماتنا الرئيسية',
+                    service1Title: 'توصيل واستلام السيارة',
+                    service1Desc: 'خدمة "تصلنا أو نصلك" لتسليم واستلام السيارة في مقر العمل أو المنزل.',
+                    service2Title: 'فريق صيانة متنقل',
+                    service2Desc: 'لخدمتكم في موقعكم، مما يضمن استمرارية أعمالكم.',
+                    service3Title: 'أسعار خاصة للأفراد',
+                    service3Desc: 'إيجار شهري بأسعار خاصة للأفراد.',
+                    service4Title: 'سيارات بسائقين',
+                    service4Desc: 'توفير سيارات مع سائقين وفقاً لطلب العميل.',
+                    service5Title: 'برنامج عضوية رينتو',
+                    service5Desc: 'يقدم للأعضاء خصومات عالية وترقيات ومزايا أخرى.',
+                    service6Title: 'خدمات للشركات والفنادق',
+                    service6Desc: 'توفير سيارات للخدمات السياحية، المناسبات، الوفود الرسمية، وعقود تأجير سنوية.',
+                    challengeSectionTitle: 'التحدي: تعقيدات الامتثال ومخاطره',
+                    challengeSectionDescription: 'تواجه وكالات السيارات ضغوطاً تنظيمية وتشغيلية لتوفير سيارة بديلة، مما يترتب عليه تكاليف ومخاطر كبيرة.',
+                    card1Title: 'شروط إلزامية',
+                    card1Description: 'تلزم وزارة التجارة بتوفير سيارة بديلة من **نفس الفئة** في حالات الخلل المصنعي أو تأخر توفير قطع الغيار لأكثر من 14 يوماً.',
+                    card2Title: 'خسائر مالية مباشرة',
+                    card2Description: 'في حال عدم التوفير، يُدفع تعويض يومي للعميل يُحسب كالتالي: <br><span class="font-mono text-sm">(سعر السيارة ÷ 400)</span>، بالإضافة إلى غرامات تصل إلى <span class="tajawal-bold">50,000 ريال</span>.',
+                    card3Title: 'عبء تشغيلي هائل',
+                    card3Description: 'شراء وإدارة أسطول سيارات بديلة متنوع يتطلب استثماراً رأسمالياً ضخماً وجهداً إدارياً يشتت التركيز عن أعمالكم الأساسية.',
+                    solutionSectionTitle: 'الحل: شريكك الاستراتيجي للتميز التشغيلي',
+                    solutionSectionDescription: 'نقدم خدمة متكاملة تحول هذا التحدي إلى ميزة تنافسية، عبر أربع ركائز أساسية.',
+                    tab1Btn: '📈 الكفاءة المالية',
+                    tab2Btn: '🛡️ امتثال مضمون',
+                    tab3Btn: '🚀 مرونة تشغيلية',
+                    tab4Btn: '😊 رضا العملاء',
+                    tab1ContentTitle: 'تحويل التكاليف وتحسين الربحية',
+                    tab1ContentDesc: 'تخلص من النفقات الرأسمالية الضخمة لشراء أسطول سيارات، واستبدلها بنفقات تشغيلية شهرية ثابتة وقابلة للتنبؤ. شركة موكن المحدودة (Rento لتأجير السيارات) تتكفل بكل شيء: الصيانة، التأمين، الترخيص، والاستهلاك. هذا يحرر مواردكم المالية للتركيز على النمو والتوسع.',
+                    tab2ContentTitle: 'تجنب الغرامات وراحة البال',
+                    tab2ContentDesc: 'فريق Rento لتأجير السيارات يضمن تطبيق جميع لوائح وزارة التجارة بدقة. نوفر السيارة البديلة المناسبة في الوقت المناسب، مما يحمي وكالتكم من الغرامات المالية والشكاوى القانونية، ويعزز سمعتكم ككيان مسؤول وملتزم.',
+                    tab3ContentTitle: 'أسطول متنوع تحت طلبكم',
+                    tab3ContentDesc: 'استفد من أسطول Rento لتأجير السيارات الضخم الذي يغطي جميع فئات السيارات (اقتصادية، سيدان، دفع رباعي، فاخرة). لا حاجة للقلق بشأن توفر فئة معينة. مع شبكتنا اللوجستية، نضمن تسليم واستلام السيارة بسرعة وكفاءة في أي مكان.',
+                    tab4ContentTitle: 'تحويل تجربة سلبية إلى إيجابية',
+                    tab4ContentDesc: 'عندما يتعطل العميل، فإن توفير سيارة بديلة عالية الجودة بشكل فوري يحول إزعاجه إلى تقدير لخدمتكم الممتازة. هذه اللحظة الحاسمة تبني ولاءً طويل الأمد وتجعل من عملائكم سفراء لعلامتكم التجارية.',
+                    pricingSectionTitle: 'أسعار تنافسية ونماذج مرنة',
+                    pricingSectionDescription: 'اختر فئة السيارة لتستكشف هياكل التسعير التقديرية لدينا. <span class="tajawal-bold text-[#FA4616]">يرجى ملاحظة أن هذا نموذج تسعير افتراضي، ويتم تحديد التسعير النهائي بناءً على سعر السيارات الفعلي وحسب موديل السنة.</span> نقدم حلولاً مصممة خصيصاً لتناسب احتياجات وميزانية وكالتكم.',
+                    filterAll: 'كل الفئات',
+                    filterEconomic: 'اقتصادية',
+                    filterMedium: 'متوسطة',
+                    filterSUV: 'دفع رباعي',
+                    filterLuxury: 'فاخرة',
+                    chartLabelLongTerm: 'تأجير طويل الأجل (شهري) (نموذجي)',
+                    chartLabelMonthly: 'تأجير شهري (نموذجي)',
+                    chartYAxisLabel: ' ريال',
+                    contactSectionTitle: 'هل أنتم مستعدون للارتقاء بخدماتكم؟',
+                    contactSectionDescription: 'دعنا نناقش كيف يمكننا تصميم حل مخصص لوكالتكم. تواصل معنا اليوم للحصول على عرض سعر تفصيلي واستشارة مجانية.',
+                    contactSalesTeam: 'تواصل مع فريق المبيعات المختص في Rento لتأجير السيارات:',
+                    contactInfo: `
+                        <a href="tel:+966500038360" class="block text-[#80276C] hover:underline">جوال: 00966500038360</a>
+                        <a href="tel:920019993" class="block text-[#80276C] hover:underline">الرقم الموحد: 920019993</a>
+                        <a href="mailto:a.rabia@rentocars.com" class="block text-[#80276C] hover:underline">البريد الإلكتروني: a.rabia@rentocars.com</a>
+                    `,
+                    startPartnershipBtn: 'ابدأ الشراكة الآن',
+                    footerCopyright: '&copy; 2025 شركة موكن المحدودة (Rento لتأجير السيارات). جميع الحقوق محفوظة.',
+                    footerTagline: 'حلول استراتيجية لقطاع السيارات'
+                },
+                en: {
+                    pageTitle: 'Alternative Car Service for Agencies',
+                    headerTitle: 'Alternative Car Solutions - Rento Car Rental',
+                    navProfile: 'About Us',
+                    navChallenge: 'Challenge',
+                    navSolution: 'Our Solutions',
+                    navPricing: 'Pricing',
+                    navContact: 'Contact Us',
+                    requestQuoteBtn: 'Request a Quote',
+                    heroTitle: 'Transform Compliance into Opportunity',
+                    heroIntro: 'We offer your agency a strategic and comprehensive alternative car service from Mokin Co. Ltd. (Rento Car Rental).',
+                    benefit1: 'Compliance with MoC Regulations',
+                    benefit2: 'Reduced Operational Costs',
+                    benefit3: 'Enhanced Customer Satisfaction & Loyalty',
+                    heroDescriptionPrint: 'We offer your agency a strategic and comprehensive alternative car service from Mokin Co. Ltd. (Rento Car Rental). Comply with Ministry of Commerce regulations, reduce costs, and enhance customer satisfaction and loyalty with ease and confidence.',
+                    discoverHowBtn: 'Discover How',
+                    profileSectionTitle: 'Rento Car Rental: Modern Excellence',
+                    profileSectionDescription: 'A comprehensive introduction to our journey towards excellence and continuous modernization in the car rental sector.',
+                    aboutUsTitle: 'About Us',
+                    aboutUsDesc: 'Rento Car Rental (a registered trade name for Mokin Co. Ltd.) was established in 2015. Despite the short period, the company has succeeded in building a distinguished reputation that has given it a unique position in the car rental field.',
+                    ourGoalsTitle: 'Our Goals',
+                    ourGoalsDesc: 'Profit is a declared goal for car rental companies, but at Rento, we believe that providing the best level of services to our customers, who are our partners in success, is our real gain, and financial profit comes later. Therefore, before starting its operations, the company was keen to study customer needs, focusing on ensuring that the company\'s staff is professional, specialized, and trained to provide the best services. The company has also prepared its facilities and fleet to suit the needs of customers of various categories.',
+                    ourVisionTitle: 'Our Vision',
+                    ourVisionDesc: 'To be a distinctive brand starting from within the Kingdom and spreading internationally as a national investment that reflects the Kingdom\'s development in entrepreneurship locally and internationally. This begins with you as partners for success, as we start with you and through your opinion and communication, we work and develop to be the best.',
+                    ourMissionTitle: 'Our Mission',
+                    ourMissionDesc: 'Is to reach the pinnacle of our services and deserve to be a source of pride for our nation, both domestically and internationally, through our continuous commitment to our shareholders, customers, and employees. We maintain these principles by providing distinguished services and fostering a culture of teamwork that we build together to exceed our customers\' expectations and ambitions.',
+                    ourEthicsTitle: 'Our Ethics',
+                    ourEthicsDesc: 'Professionalism in work, quality in services, and credibility in dealings.',
+                    ourServicesTitle: 'Our Key Services',
+                    service1Title: 'Car Delivery & Pickup',
+                    service1Desc: '"Reach Us or We Reach You" service for car delivery and pickup at your office or home.',
+                    service2Title: 'Mobile Maintenance Team',
+                    service2Desc: 'To serve you at your location, ensuring continuity of your operations.',
+                    service3Title: 'Special Rates for Individuals',
+                    service3Desc: 'Special monthly rental rates for individuals.',
+                    service4Title: 'Cars with Drivers',
+                    service4Desc: 'Providing cars with drivers according to customer request.',
+                    service5Title: 'Rento Membership Program',
+                    service5Desc: 'Offers members high discounts, upgrades, and other benefits.',
+                    service6Title: 'Services for Companies & Hotels',
+                    service6Desc: 'Providing vehicles for tourist services, events, official delegations, and annual lease contracts.',
+                    challengeSectionTitle: 'The Challenge: Compliance Complexities & Risks',
+                    challengeSectionDescription: 'Car agencies face increasing regulatory and operational pressures to provide alternative cars, incurring significant costs and risks.',
+                    card1Title: 'Mandatory Conditions',
+                    card1Description: 'The Ministry of Commerce mandates providing an alternative car of the **same category** in cases of manufacturing defects or delayed spare parts for more than 14 days.',
+                    card2Title: 'Direct Financial Losses',
+                    card2Description: 'In case of non-provision, a daily compensation is paid to the customer calculated as: <br><span class="font-mono text-sm">(Car Price ÷ 400)</span>, in addition to fines up to <span class="tajawal-bold">50,000 SAR</span>.',
+                    card3Title: 'Huge Operational Burden',
+                    card3Description: 'Purchasing and managing a diverse fleet of alternative cars requires massive capital investment and administrative effort that distracts from your core business.',
+                    solutionSectionTitle: 'The Solution: Your Strategic Partner for Operational Excellence',
+                    solutionSectionDescription: 'We offer an integrated service that turns this challenge into a competitive advantage, through four key pillars.',
+                    tab1Btn: '📈 Financial Efficiency',
+                    tab2Btn: '🛡️ Guaranteed Compliance',
+                    tab3Btn: '🚀 Operational Flexibility',
+                    tab4Btn: '😊 Customer Satisfaction',
+                    tab1ContentTitle: 'Cost Transformation & Profitability Improvement',
+                    tab1ContentDesc: 'Eliminate huge capital expenditures for purchasing a car fleet, and replace them with fixed, predictable monthly operating expenses. Mokin Co. Ltd. (Rento Car Rental) handles everything: maintenance, insurance, licensing, and depreciation. This frees up your financial resources to focus on growth and expansion.',
+                    tab2ContentTitle: 'Avoid Fines & Peace of Mind',
+                    tab2ContentDesc: 'Rento Car Rental\'s team ensures strict application of all Ministry of Commerce regulations. We provide the appropriate alternative car in a timely manner, protecting your agency from financial fines and legal complaints, and enhancing your reputation as a responsible and committed entity.',
+                    tab3ContentTitle: 'Diverse Fleet at Your Command',
+                    tab3ContentDesc: 'Benefit from Rento Car Rental\'s large fleet covering all car categories (economic, sedan, SUV, luxury). No need to worry about the availability of a specific category. With our logistics network, we ensure fast and efficient car delivery and pickup anywhere.',
+                    tab4ContentTitle: 'Transform a Negative Experience into a Positive One',
+                    tab4ContentDesc: 'When a customer\'s car breaks down, providing a high-quality alternative car immediately turns their inconvenience into appreciation for your excellent service. This crucial moment builds long-term loyalty and turns your customers into ambassadors for your brand.',
+                    pricingSectionTitle: 'Competitive Pricing & Flexible Models',
+                    pricingSectionDescription: 'Select a car category to explore our estimated pricing structures. <span class="tajawal-bold text-[#FA4616]">Please note that this is a hypothetical pricing model, and final pricing is determined based on the actual car price and model year.</span> We offer customized solutions to fit your agency\'s needs and budget.',
+                    filterAll: 'All Categories',
+                    filterEconomic: 'Economic',
+                    filterMedium: 'Medium',
+                    filterSUV: 'SUV',
+                    filterLuxury: 'Luxury',
+                    chartLabelLongTerm: 'Long-Term Rental (Monthly) (Typical)',
+                    chartLabelMonthly: 'Monthly Rental (Typical)',
+                    chartYAxisLabel: ' SAR',
+                    contactSectionTitle: 'Are You Ready to Elevate Your Services?',
+                    contactSectionDescription: 'Let\'s discuss how we can design a customized solution for your agency. Contact us today for a detailed quote and a free consultation.',
+                    contactSalesTeam: 'Contact the specialized sales team at Rento Car Rental:',
+                    contactInfo: `
+                        <a href="tel:+966500038360" class="block text-[#80276C] hover:underline">Mobile: +966500038360</a>
+                        <a href="tel:920019993" class="block text-[#80276C] hover:underline">Unified Number: 920019993</a>
+                        <a href="mailto:a.rabia@rentocars.com" class="block text-[#80276C] hover:underline">Email: a.rabia@rentocars.com</a>
+                    `,
+                    startPartnershipBtn: 'Start Partnership Now',
+                    footerCopyright: '&copy; 2025 Mokin Co. Ltd. (Rento Car Rental). All Rights Reserved.',
+                    footerTagline: 'Strategic Solutions for the Automotive Sector'
+                }
+            };
+
+            let currentLanguage = localStorage.getItem('lang') || 'ar';
+            const langToggleBtn = document.getElementById('language-toggle');
+            const currentLangSpan = document.getElementById('current-language');
+
+            function applyTranslation(lang) {
+                document.querySelectorAll('[data-key]').forEach(element => {
+                    const key = element.dataset.key;
+                    // For the heroDescriptionPrint, only update if print is active, otherwise keep hidden
+                    if (element.classList.contains('hero-description-for-print') && !window.matchMedia('print').matches) {
+                        return; // Skip updating this element if not printing
+                    }
+                    if (translations[lang] && translations[lang][key]) {
+                        element.innerHTML = translations[lang][key];
+                    }
+                });
+
+                document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+                currentLangSpan.textContent = (lang === 'ar') ? 'EN' : 'AR';
+                
+                // Update chart labels for the new language
+                if (pricingChart) {
+                    pricingChart.data.datasets[0].label = translations[lang].chartLabelLongTerm;
+                    pricingChart.data.datasets[1].label = translations[lang].chartLabelMonthly;
+                    pricingChart.options.scales.y.ticks.callback = function(value) {
+                        return value.toLocaleString((lang === 'ar') ? 'ar-SA' : 'en-US') + translations[lang].chartYAxisLabel;
+                    };
+                    pricingChart.update();
+                }
+            }
+
+            langToggleBtn.addEventListener('click', () => {
+                currentLanguage = (currentLanguage === 'ar') ? 'en' : 'ar';
+                localStorage.setItem('lang', currentLanguage);
+                applyTranslation(currentLanguage);
+            });
+
+            // Tab switching logic
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('tab-active'));
+                    button.classList.add('tab-active');
+
+                    const tabId = button.dataset.tab;
+                    tabContents.forEach(content => {
+                        if (content.id === tabId) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            // Intersection Observer for fade-in animations
+            const sections = document.querySelectorAll('.section-fade-in');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+            
+            // Chart.js logic
+            const pricingData = {
+                'اقتصادية': { daily: 160, monthly: 3250, yearly: 2400 },
+                'متوسطة': { daily: 325, monthly: 5750, yearly: 4750 },
+                'دفع رباعي': { daily: 625, monthly: 9750, yearly: 8250 },
+                'فاخرة': { daily: 2250, monthly: 17500, yearly: 14500 },
+                'Economic': { daily: 160, monthly: 3250, yearly: 2400 },
+                'Medium': { daily: 325, monthly: 5750, yearly: 4750 },
+                'SUV': { daily: 625, monthly: 9750, yearly: 8250 },
+                'Luxury': { daily: 2250, monthly: 17500, yearly: 14500 }
+            };
+
+            const getChartCategories = (lang) => {
+                if (lang === 'ar') {
+                    return ['اقتصادية', 'متوسطة', 'دفع رباعي', 'فاخرة'];
+                } else {
+                    return ['Economic', 'Medium', 'SUV', 'Luxury'];
+                }
+            };
+            
+            let pricingChart;
+
+            const initializeChart = (lang) => {
+                const categories = getChartCategories(lang);
+                const yearlyPrices = categories.map(cat => pricingData[cat].yearly);
+                const monthlyPrices = categories.map(cat => pricingData[cat].monthly);
+
+                const ctx = document.getElementById('pricingChart').getContext('2d');
+                if (pricingChart) {
+                    pricingChart.destroy(); // Destroy existing chart before creating a new one
+                }
+                pricingChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: categories,
+                        datasets: [
+                            {
+                                label: translations[lang].chartLabelLongTerm,
+                                data: yearlyPrices,
+                                backgroundColor: 'rgba(128, 39, 108, 0.7)', /* #80276C with alpha */
+                                borderColor: '#80276C',
+                                borderWidth: 1,
+                                borderRadius: 5,
+                            },
+                            {
+                                label: translations[lang].chartLabelMonthly,
+                                data: monthlyPrices,
+                                backgroundColor: 'rgba(250, 70, 22, 0.7)', /* #FA4616 with alpha */
+                                borderColor: '#FA4616',
+                                borderWidth: 1,
+                                borderRadius: 5,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toLocaleString((lang === 'ar') ? 'ar-SA' : 'en-US') + translations[lang].chartYAxisLabel;
+                                    },
+                                    font: { family: "'Almarai', sans-serif" }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: { family: "'Almarai', sans-serif", size: 14 }
+                                },
+                                 grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    font: { family: "'Almarai', sans-serif", size: 14 }
+                                }
+                            },
+                            tooltip: {
+                                bodyFont: { family: "'Almarai', sans-serif" },
+                                titleFont: { family: "'Almarai', sans-serif" },
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += context.parsed.y.toLocaleString((lang === 'ar') ? 'ar-SA' : 'en-US') + translations[lang].chartYAxisLabel;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            };
+
+            // Filter logic for chart and buttons
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    filterButtons.forEach(btn => btn.classList.remove('filter-btn-active'));
+                    button.classList.add('filter-btn-active');
+                    
+                    const categoryDataKey = button.dataset.key;
+                    // For chart updates, we need the actual category name, not the translated one
+                    let selectedCategory;
+                    if (categoryDataKey === 'filterAll') {
+                        selectedCategory = currentLanguage === 'ar' ? 'كل الفئات' : 'All Categories';
+                    } else if (categoryDataKey === 'filterEconomic') {
+                        selectedCategory = currentLanguage === 'ar' ? 'اقتصادية' : 'Economic';
+                    } else if (categoryDataKey === 'filterMedium') {
+                        selectedCategory = currentLanguage === 'ar' ? 'متوسطة' : 'Medium';
+                    } else if (categoryDataKey === 'filterSUV') {
+                        selectedCategory = currentLanguage === 'ar' ? 'دفع رباعي' : 'SUV';
+                    } else if (categoryDataKey === 'filterLuxury') {
+                        selectedCategory = currentLanguage === 'ar' ? 'فاخرة' : 'Luxury';
+                    }
+
+                    let filteredCategories;
+                    if (categoryDataKey === 'filterAll') {
+                        filteredCategories = getChartCategories(currentLanguage);
+                    } else {
+                        // Find the original key for pricingData access
+                        const originalCategory = Object.keys(translations.ar).find(key => translations.ar[key] === selectedCategory) || Object.keys(translations.en).find(key => translations.en[key] === selectedCategory);
+                        filteredCategories = [originalCategory || selectedCategory]; // Use original key or fallback
+                    }
+                    
+                    pricingChart.data.labels = filteredCategories;
+                    pricingChart.data.datasets[0].data = filteredCategories.map(cat => pricingData[cat].yearly);
+                    pricingChart.data.datasets[1].data = filteredCategories.map(cat => pricingData[cat].monthly);
+                    pricingChart.update();
+                });
+            });
+            
+            // Initial setup
+            applyTranslation(currentLanguage);
+            initializeChart(currentLanguage);
+            document.querySelector('.filter-btn[data-category="all"]').classList.add('filter-btn-active');
+        });
+    </script>
+</body>
+</html>
